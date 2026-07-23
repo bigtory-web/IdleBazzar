@@ -2,6 +2,8 @@
 
 10:16 세로 화면의 10칸 전투판에서 공중 몬스터를 막는 HTML/Canvas 프로토타입입니다.
 
+작업을 이어받는 개발자는 먼저 [`DEVELOPMENT_HANDOFF.md`](DEVELOPMENT_HANDOFF.md)를 확인하세요. 확정된 전투 규칙은 [`GAME_DESIGN_HANDOFF.md`](GAME_DESIGN_HANDOFF.md)에 정리되어 있습니다.
+
 ## 실행
 
 PowerShell에서 아래 명령을 실행한 뒤 `http://127.0.0.1:4173/`에 접속합니다.

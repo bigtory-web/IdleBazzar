@@ -2160,7 +2160,7 @@ function draw() {
 }
 
 function currentStatText(type, tier = 1) {
-  const text = ["direct", "fire", "frost", "wind", "shield", "split", "pierce", "explode", "multicast"]
+  return ["frost", "wind", "shield", "split", "pierce", "explode", "multicast"]
     .filter((key) => tierStatValue(type, key, tier) > 0)
     .map((key) => {
       const value = tierStatValue(type, key, tier);
@@ -2170,12 +2170,55 @@ function currentStatText(type, tier = 1) {
       return `${STAT_ICONS[key]} ${STAT_LABELS[key]} ${display}`;
     })
     .join(" · ");
-  const shot = type.shot ? SHOT_LABELS[type.shot] : "지원";
-  return [shot, text].filter(Boolean).join(" · ");
 }
 
 function unitEffectText(type) {
-  return type.desc || "직선탄 또는 유도탄으로 가장 가까운 적을 공격합니다.";
+  return type.desc || "가장 가까운 적 자동 공격";
+}
+
+function detailMetaHtml(type) {
+  const labels = [...type.tags, type.shot ? SHOT_LABELS[type.shot] : null].filter(Boolean);
+  const tags = labels.map((tag) => `<span class="tag-chip">${tag}</span>`).join("");
+  return `<span class="size-chip">${SIZE_LABELS[type.size]}</span>${tags}`;
+}
+
+function popoverStatValue(type, key, tier = 1, unit = null) {
+  return unit ? statsFor(unit)[key] : tierStatValue(type, key, tier);
+}
+
+function detailStatsHtml(type, tier = 1, unit = null) {
+  const direct = popoverStatValue(type, "direct", tier, unit);
+  const fire = popoverStatValue(type, "fire", tier, unit);
+  const ammoCurrent = unit ? unit.ammo : AMMO_BY_SIZE[type.size];
+  const ammoMax = unit ? unit.ammoMax : AMMO_BY_SIZE[type.size];
+  const stats = [
+    { key: "cooldown", icon: "⏱️", value: compactNumber(type.cooldown), label: `쿨타임 ${compactNumber(type.cooldown)}초` },
+    type.tags.includes("총")
+      ? { key: "ammo", icon: "🔫", value: `${ammoCurrent}/${ammoMax}`, label: `탄약 ${ammoCurrent}/${ammoMax}` }
+      : null,
+    direct > 0
+      ? { key: "direct", icon: STAT_ICONS.direct, value: compactNumber(direct), label: `타격 ${compactNumber(direct)}` }
+      : null,
+    fire > 0
+      ? { key: "fire", icon: STAT_ICONS.fire, value: compactNumber(fire), label: `화염 ${compactNumber(fire)}` }
+      : null,
+  ].filter(Boolean);
+
+  return stats.map((stat) => `
+    <span class="detail-stat detail-stat-${stat.key}" aria-label="${stat.label}">
+      <span class="detail-stat-icon" aria-hidden="true">${stat.icon}</span>
+      <strong class="detail-stat-value">${stat.value}</strong>
+    </span>
+  `).join("");
+}
+
+function detailEffectHtml(effect) {
+  return `
+    <div class="current-effect">
+      ${effect.value ? `<strong class="effect-value">${effect.value}</strong>` : ""}
+      ${effect.condition ? `<span class="effect-condition">${effect.condition}</span>` : ""}
+    </div>
+  `;
 }
 
 function resolveTierValues(text, tier = 1) {
@@ -2185,32 +2228,15 @@ function resolveTierValues(text, tier = 1) {
   });
 }
 
-function statusRuleText(type, tier = 1) {
-  const rules = [];
-  const windDuration = tierStatValue(type, "wind", tier);
-  if (tierStatValue(type, "fire", tier) > 0) rules.push(`🔥 ${FIRE_DURATION}초·재적용 갱신`);
-  if (tierStatValue(type, "frost", tier) > 0) rules.push(`❄️ ${FROST_DURATION}초 이동·공격 지연·최대 ${MAX_FROST_STACK}스택`);
-  if (windDuration > 0) rules.push(`💨 자신·인접 ${compactNumber(windDuration)}초·쿨타임 ×2`);
-  if (tierStatValue(type, "shield", tier) > 0) rules.push(`🛡️ 즉시 방어·초당 ${SHIELD_DECAY_PER_SECOND} 감소·최대 ${MAX_WALL_SHIELD}`);
-  if (tierStatValue(type, "split", tier) > 0) rules.push(`✦ 분열·잔여탄은 주 대상 ${Math.round(REPEATED_SPLIT_POWER_SCALE * 100)}%`);
-  if (tierStatValue(type, "pierce", tier) > 0) rules.push("➶ 최대 관통 직선 조준");
-  if (tierStatValue(type, "explode", tier) > 0) rules.push("💥 명중 지점 주변에 60% 피해");
-  if (tierStatValue(type, "multicast", tier) > 0) rules.push(`✦ 추가 시전 0.14초 간격·${Math.round(MULTICAST_POWER_SCALE * 100)}% 효과`);
-  if (type.tags.includes("총")) rules.push(`🔫 발동 -1·웨이브 시작 ${AMMO_BY_SIZE[type.size]}/${AMMO_BY_SIZE[type.size]}`);
-  if (type.reload) rules.push("📦 인접 총 1발 장전");
-  return rules.join(" · ");
-}
-
 function currentEffectData(type, tier = 1) {
-  const conditions = [resolveTierValues(unitEffectText(type), tier), statusRuleText(type, tier)].filter(Boolean);
   return {
     value: currentStatText(type, tier),
-    condition: conditions.join(" · "),
+    condition: resolveTierValues(unitEffectText(type), tier),
   };
 }
 
 function currentStatsText(unit, stats = statsFor(unit)) {
-  const keys = ["direct", "fire", "frost", "wind", "shield", "split", "pierce", "explode"]
+  const keys = ["frost", "wind", "shield", "split", "pierce", "explode"]
     .filter((key) => stats[key] > 0);
   const values = keys.map((key) => {
     const statValue = stats[key];
@@ -2220,7 +2246,6 @@ function currentStatsText(unit, stats = statsFor(unit)) {
     return `${STAT_ICONS[key]} ${STAT_LABELS[key]} ${display}`;
   });
   if (stats.casts > 1) values.push(`✦ ${stats.casts}회 시전(추가 ${Math.round(MULTICAST_POWER_SCALE * 100)}%)`);
-  if (hasTag(unit, "총")) values.push(`🔫 ${unit.ammo}/${unit.ammoMax}`);
   return values.join(" · ");
 }
 
@@ -2247,22 +2272,20 @@ function currentPlacedEffectData(unit) {
   const placementParts = [];
   if (links > 0) placementParts.push(`인접 시너지 ${links}개`);
   if (globalLinks > 0) placementParts.push(`전역 조건 ${globalLinks}개`);
-  const placement = placementParts.length ? `${placementParts.join(" · ")} 활성` : "연결 시너지 없음";
   const effect = currentEffectData(type, unit.tier);
   return {
     value: currentStatsText(unit, stats),
-    condition: `${placement} · ${effect.condition}`,
+    condition: [placementParts.length ? `${placementParts.join(" · ")} 활성` : "", effect.condition]
+      .filter(Boolean)
+      .join(" · "),
   };
 }
 
 function currentUnitEffectData(unit) {
   const type = typeFor(unit);
   const stats = statsFor(unit);
-  const runtime = [`쿨타임 ${Math.max(0, unit.cooldownLeft).toFixed(1)}/${stats.cooldown.toFixed(1)}초`];
+  const runtime = [];
   if (unit.windTimer > 0) runtime.push(`바람 ${unit.windTimer.toFixed(1)}초`);
-  if (hasTag(unit, "총")) runtime.push(`탄약 ${unit.ammo}/${unit.ammoMax}`);
-  if (type.reload) runtime.push("인접 총 중 탄약이 가장 적은 카드에 +1 장전");
-  if (statusRuleText(type, unit.tier)) runtime.push(statusRuleText(type, unit.tier));
   runtime.push(resolveTierValues(unitEffectText(type), unit.tier));
   return { value: currentStatsText(unit, stats), condition: runtime.join(" · ") };
 }
@@ -2277,14 +2300,12 @@ function showShopPopover(offerIndex) {
   const effect = currentEffectData(type, 1);
   shopDetail.style.setProperty("--unit-color", type.color);
   shopDetail.innerHTML = `
+    ${detailStatsHtml(type)}
     <div class="detail-head">
       <strong class="detail-title">${type.emoji} ${type.name}</strong>
-      <strong class="detail-meta">${SIZE_LABELS[type.size]} · ${type.tags.map((tag) => `#${tag}`).join(" · ")}</strong>
+      <span class="detail-meta">${detailMetaHtml(type)}</span>
     </div>
-    <div class="current-effect">
-      <strong class="effect-value">${effect.value}</strong>
-      <span class="effect-condition">${effect.condition}</span>
-    </div>
+    ${detailEffectHtml(effect)}
   `;
   shopDetail.hidden = false;
 }
@@ -2317,7 +2338,6 @@ function showUnitPopover(unit) {
   let effect;
   if (location === "stash") {
     effect = currentEffectData(type, unit.tier);
-    effect.condition = `창고 · 전투 미참여 · ${effect.condition}`;
   } else {
     effect = state.phase === "combat" ? currentUnitEffectData(unit) : currentPlacedEffectData(unit);
   }
@@ -2326,14 +2346,12 @@ function showUnitPopover(unit) {
   unitDetail.style.setProperty("--unit-color", type.color);
   unitDetail.style.setProperty("--popover-x", `${Math.max(18, Math.min(82, centerPercent))}%`);
   unitDetail.innerHTML = `
+    ${detailStatsHtml(type, unit.tier, unit)}
     <div class="detail-head">
       <strong class="detail-title">${type.emoji} ${type.name}</strong>
-      <strong class="detail-meta">${SIZE_LABELS[type.size]} · ${type.tags.map((tag) => `#${tag}`).join(" · ")}</strong>
+      <span class="detail-meta">${detailMetaHtml(type)}</span>
     </div>
-    <div class="current-effect">
-      <strong class="effect-value">${effect.value}</strong>
-      <span class="effect-condition">${effect.condition}</span>
-    </div>
+    ${detailEffectHtml(effect)}
   `;
   unitDetail.hidden = false;
 }
