@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>바자르 키우기 - 전투 프로토타입</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="game-shell" aria-label="바자르 키우기 전투 프로토타입">
+        <canvas id="gameCanvas" width="1000" height="1600" aria-label="전투 화면"></canvas>
+
+        <div class="top-controls">
+          <button id="pauseButton" class="icon-button" type="button" aria-label="일시정지">Ⅱ</button>
+          <button id="speedButton" class="icon-button speed" type="button" aria-label="전투 속도">×1</button>
+        </div>
+
+        <div class="gold-hud" aria-label="보유 골드">
+          <span class="gold-mark" aria-hidden="true">G</span>
+          <strong id="goldText">0</strong>
+        </div>
+
+        <p id="gameToast" class="game-toast" role="status" aria-live="polite" hidden></p>
+        <p id="battleStatus" class="sr-only" aria-live="polite"></p>
+
+        <section id="prepPanel" class="prep-panel" aria-live="polite">
+          <header class="prep-header">
+            <h1 id="prepTitle">웨이브 1</h1>
+            <button id="rerollButton" class="secondary-button" type="button" aria-label="상점 새로고침, 2골드" title="새로고침 · 2G">
+              <span aria-hidden="true">↻</span>
+            </button>
+          </header>
+
+          <div class="shop-area">
+            <div id="shopOffers" class="shop-offers" aria-label="상점 선택지"></div>
+            <section id="shopDetail" class="shop-popover" role="tooltip" aria-live="polite" hidden></section>
+          </div>
+
+          <div class="start-action">
+            <button id="startWaveButton" class="primary-button" type="button">웨이브 시작</button>
+          </div>
+        </section>
+
+        <section id="unitDetail" class="unit-popover" role="tooltip" aria-live="polite" hidden></section>
+
+        <section id="resultPanel" class="result-panel" hidden>
+          <p class="eyebrow">RUN RESULT</p>
+          <h2 id="resultTitle">승리!</h2>
+          <p id="resultText"></p>
+          <button id="restartButton" class="primary-button" type="button">다시 시작</button>
+        </section>
+      </section>
+
+      <section id="stashDock" class="stash-dock" aria-label="창고">
+        <div id="stashTrack" class="slot-track" aria-label="창고 10칸"></div>
+        <button id="sellButton" class="stash-action" type="button" aria-label="판매할 캐릭터를 선택하세요" title="판매할 캐릭터를 선택하세요" disabled>🗑</button>
+      </section>
+    </main>
+
+    <script src="card-data.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
