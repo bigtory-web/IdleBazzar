@@ -502,14 +502,14 @@ function weightedPlanForWave(wave) {
 
 function rollShop() {
   if (state.wave === 0 && state.shop.length === 0) {
-    state.shop = ["fire_sword", "fire_gun", "wind_sprite"];
+    state.shop = ACTIVE_CARD_IDS.slice(0, 3);
     state.selectedShopIndex = null;
     state.shopOutcomes = [];
     renderPrep();
     return;
   }
   const maxSize = state.wave < 1 ? 1 : state.wave < 4 ? 2 : 3;
-  const unlocked = Object.keys(unitTypes).filter((id) => unitTypes[id].size <= maxSize);
+  const unlocked = ACTIVE_CARD_IDS.filter((id) => unitTypes[id]?.size <= maxSize);
   const ownedUnits = [...state.board, ...state.stash].filter((unit) => !unit.isStarter);
   const offers = [];
   while (offers.length < 3) {

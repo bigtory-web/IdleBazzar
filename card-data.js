@@ -31,6 +31,21 @@ const CARD_CATALOG = [
   { id: "frost_lord", name: "서리 군주", emoji: "☃️", size: 3, cost: 5, cooldown: 10, tags: ["무기", "사역마"], shot: "straight", stats: { direct: [13, 4], frost: [3, 0.5], pierce: [3, 1] }, desc: "적 무리 접근 지연" },
 ];
 
+// 현재 플레이 테스트에 사용하는 상점 카드 10종.
+// CARD_CATALOG의 나머지 카드는 후보 데이터로만 유지하고 상점에는 노출하지 않는다.
+const ACTIVE_CARD_IDS = Object.freeze([
+  "fire_gun",
+  "wind_sprite",
+  "shield_sprite",
+  "scatter_cannon",
+  "pierce_rifle",
+  "bomb_launcher",
+  "flame_hydra",
+  "frost_ray",
+  "supply_orb",
+  "storm_lord",
+]);
+
 // 적 데이터는 플레이어 카드 효과와 분리한다. 전투에 필요한 기본 전투력만 가진다.
 const MONSTER_CARD_CATALOG = [
   { id: "slime_점액탄", family: "슬라임", name: "점액탄", emoji: "🫧", size: 1, cooldown: 5, stats: { direct: [5, 0] } },
