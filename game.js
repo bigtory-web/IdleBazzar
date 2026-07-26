@@ -955,10 +955,16 @@ function targetForUnit(unit) {
 }
 
 function targetForProjectile(projectile) {
-  if (projectile.target?.hp > 0 && state.enemies.includes(projectile.target)) return projectile.target;
-  const source = state.board.find((unit) => unit.uid === projectile.sourceUid);
-  projectile.target = source ? targetForUnit(source) : null;
-  return projectile.target;
+  const target = projectile.target;
+  if (!target) return null;
+  const bossPhasePending = target.type.kind === "boss" && target.bossPhase < 2;
+  if (state.enemies.includes(target) && (target.hp > 0 || bossPhasePending)) {
+    return { x: target.x, y: target.y, targetLost: false };
+  }
+  if (!projectile.targetDeathPoint) {
+    projectile.targetDeathPoint = { x: target.x, y: target.y };
+  }
+  return { ...projectile.targetDeathPoint, targetLost: true };
 }
 
 function targetsForSplit(unit, primary, count) {
@@ -1265,6 +1271,7 @@ function update(dt) {
     }
     projectile.prevX = projectile.x;
     projectile.prevY = projectile.y;
+    let homingTargetLost = false;
     if (projectile.shot === "homing") {
       const target = targetForProjectile(projectile);
       if (!target) {
@@ -1276,6 +1283,21 @@ function update(dt) {
       const length = Math.max(1, Math.hypot(dx, dy));
       projectile.vx = (dx / length) * projectile.speed;
       projectile.vy = (dy / length) * projectile.speed;
+      homingTargetLost = target.targetLost;
+      if (homingTargetLost && length <= projectile.speed * scaledDt + projectile.radius) {
+        projectile.x = target.x;
+        projectile.y = target.y;
+        state.effects.push({
+          x: target.x,
+          y: target.y,
+          life: 0.16,
+          maxLife: 0.16,
+          color: projectile.color,
+          radius: Math.max(12, projectile.radius * 1.8),
+        });
+        state.projectiles.splice(state.projectiles.indexOf(projectile), 1);
+        continue;
+      }
     } else if (projectile.aimAssist > 0 && projectile.firstTarget?.hp > 0) {
       projectile.aimAssist -= scaledDt;
       const dx = projectile.firstTarget.x - projectile.x;
@@ -1287,6 +1309,7 @@ function update(dt) {
     projectile.x += projectile.vx * scaledDt;
     projectile.y += projectile.vy * scaledDt;
     projectile.angle = Math.atan2(projectile.vy, projectile.vx);
+    if (homingTargetLost) continue;
     const hits = state.enemies
       .filter((enemy) => enemy.hp > 0 && !projectile.hitIds.has(enemy))
       .map((enemy) => ({ enemy, distance: pointToSegmentDistance(enemy.x, enemy.y, projectile.prevX, projectile.prevY, projectile.x, projectile.y) }))
